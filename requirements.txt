@@ -1,0 +1,14 @@
+certifi==2019.11.28
+cffi==1.14.0
+chardet==3.0.4
+cryptography==2.8
+future==0.18.2
+idna==2.9
+pycparser==2.20
+python-telegram-bot==11.1.0
+redis==3.4.1
+requests==2.23.0
+six==1.14.0
+urllib3==1.25.8
+vk-api==11.7.0
+python-dotenv==0.12.0
