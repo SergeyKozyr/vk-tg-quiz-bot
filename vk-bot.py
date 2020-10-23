@@ -63,7 +63,7 @@ if __name__ == "__main__":
   logging_bot = telegram.Bot(token=TG_LOGGING_BOT_TOKEN)
   logger.setLevel(logging.INFO)
   logger.addHandler(MyLogsHandler(logging_bot, CHAT_ID))
-  logger.info('Бот tg-quiz запущен')
+  logger.info('Бот vk-quiz запущен')
 
   questions = get_questions()
 
