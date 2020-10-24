@@ -27,12 +27,12 @@ def send_message(event, vk_api, text):
 
 def handle_new_question_request(event, vk_api):
   question, answer = random.choice(list(questions.items()))
-  redis_db.set(event.user_id, question)
+  redis_db.set(f'vk-{event.user_id}', question)
   send_message(event, vk_api, question)
 
 
 def handle_solution_attempt(event, vk_api):
-  question = redis_db.get(event.user_id).decode()
+  question = redis_db.get(f'vk-{event.user_id}').decode()
   answer = questions[question].split('.')[0]
 
   if event.text.lower() in answer.lower():
@@ -43,7 +43,7 @@ def handle_solution_attempt(event, vk_api):
 
 
 def handle_give_up_attempt(event, vk_api):
-  question = redis_db.get(event.user_id).decode()
+  question = redis_db.get(f'vk-{event.user_id}').decode()
   answer = questions[question]
   send_message(event, vk_api, f'🐸 Ну что ж, правильный ответ: {answer}, держи следующий вопрос.\n')
   handle_new_question_request(event, vk_api)
@@ -58,7 +58,7 @@ if __name__ == "__main__":
   REDIS_PORT = os.getenv('REDIS_PORT')
   REDIS_PASSWORD = os.getenv('REDIS_PASSWORD')
 
-  redis_db = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PASSWORD, db=0)
+  redis_db = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PASSWORD)
 
   logging_bot = telegram.Bot(token=TG_LOGGING_BOT_TOKEN)
   logger.setLevel(logging.INFO)

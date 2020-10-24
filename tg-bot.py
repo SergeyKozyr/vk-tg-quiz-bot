@@ -24,15 +24,17 @@ def start(bot, update):
 
 
 def handle_new_question_request(bot, update):
+  user = update.message.from_user
   question, answer = random.choice(list(questions.items()))
-  redis_db.set(update.message.from_user.id, question)
+  redis_db.set(f'tg-{user.id}', question)
   update.message.reply_text(question)
 
   return State.SOLUTION
 
 
 def handle_solution_attempt(bot, update):
-  question = redis_db.get(update.message.from_user.id).decode()
+  user = update.message.from_user
+  question = redis_db.get(f'tg-{user.id}').decode()
   answer = questions[question].split('.')[0]
 
   if answer.lower() in update.message.text.lower():
@@ -45,7 +47,8 @@ def handle_solution_attempt(bot, update):
 
 
 def handle_give_up_attempt(bot, update):
-  question = redis_db.get(update.message.from_user.id).decode()
+  user = update.message.from_user
+  question = redis_db.get(f'tg-{user.id}').decode()
   answer = questions[question]
   update.message.reply_text(f'🐸 Ну что ж, правильный ответ: {answer}, держи следующий вопрос.\n')
   handle_new_question_request(bot, update)
@@ -74,7 +77,7 @@ if __name__ == '__main__':
 
   State = Enum('State', 'QUESTION SOLUTION')
 
-  redis_db = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PASSWORD, db=1)
+  redis_db = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PASSWORD)
 
   questions = get_questions()
 
