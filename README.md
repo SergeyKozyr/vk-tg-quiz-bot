@@ -4,21 +4,12 @@ Simple quiz bots for Vkontakte and Telegram. Bot sends a random question from th
 
 Each bot's logs are sent to Logging bot via telegram.
 
-## Usage
+## Demo
 
 Start the dialog with [Telegram bot](https://t.me/SimpleTrivia_bot) or [VK bot](https://vk.com/im?media=&sel=-199640313).
 
-## Example
 
-**Vkontakte:**
-
-![Vkontakte bot]()
-
----
-
-**Telegram:**
-
-![Telegram bot]()
+![Telegram bot](https://github.com/SergeyKozyr/vk-tg-quiz-bot/blob/media/tg-bot.gif?raw=true)
 
 ## How to install
 
