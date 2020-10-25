@@ -37,7 +37,7 @@ def handle_solution_attempt(bot, update):
   question = redis_db.get(f'tg-{user.id}').decode()
   answer = questions[question].split('.')[0]
 
-  if answer.lower() in update.message.text.lower():
+  if update.message.text.lower() in answer.lower():
     update.message.reply_text(f'😎👍 Поздравляю! Правильный ответ - {questions[question]}. Для следующего вопроса нажми «Новый вопрос»')
 
     return State.QUESTION
