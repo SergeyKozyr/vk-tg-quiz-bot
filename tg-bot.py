@@ -3,6 +3,8 @@ import os
 import random
 import redis
 import time
+import json
+from functools import partial
 from dotenv import load_dotenv
 from utils import get_questions, MyLogsHandler
 from enum import Enum
@@ -11,7 +13,6 @@ from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters, Rege
                           ConversationHandler)
 
 
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
@@ -23,10 +24,11 @@ def start(bot, update):
   return State.QUESTION
 
 
-def handle_new_question_request(bot, update):
+def handle_new_question_request(bot, update, questions):
   user = update.message.from_user
   question, answer = random.choice(list(questions.items()))
-  redis_db.set(f'tg-{user.id}', question)
+  encoded_qa = json.dumps({'question': question, 'answer': answer}, ensure_ascii=False)
+  redis_db.set(f'tg-{user.id}', encoded_qa)
   update.message.reply_text(question)
 
   return State.SOLUTION
@@ -34,11 +36,11 @@ def handle_new_question_request(bot, update):
 
 def handle_solution_attempt(bot, update):
   user = update.message.from_user
-  question = redis_db.get(f'tg-{user.id}').decode()
-  answer = questions[question].split('.')[0]
+  decoded_qa = redis_db.get(f'tg-{user.id}').decode()
+  answer = json.loads(decoded_qa)['answer']
 
   if update.message.text.lower() in answer.lower():
-    update.message.reply_text(f'😎👍 Поздравляю! Правильный ответ - {questions[question]}. Для следующего вопроса нажми «Новый вопрос»')
+    update.message.reply_text(f'😎👍 Поздравляю! Правильный ответ - {answer}. Для следующего вопроса нажми «Новый вопрос»')
 
     return State.QUESTION
 
@@ -46,12 +48,12 @@ def handle_solution_attempt(bot, update):
     update.message.reply_text('😦 Неправильно...Попробуешь ещё раз?')
 
 
-def handle_give_up_attempt(bot, update):
+def handle_give_up_attempt(bot, update, questions):
   user = update.message.from_user
-  question = redis_db.get(f'tg-{user.id}').decode()
-  answer = questions[question]
+  decoded_qa = redis_db.get(f'tg-{user.id}').decode()
+  answer = json.loads(decoded_qa)['answer']
   update.message.reply_text(f'🐸 Ну что ж, правильный ответ: {answer}, держи следующий вопрос.\n')
-  handle_new_question_request(bot, update)
+  handle_new_question_request(bot, update, questions)
 
 
 def cancel(bot, update):
@@ -68,7 +70,7 @@ def error(bot, update, error):
 
 if __name__ == '__main__':
   load_dotenv()
-  TRIVIA_BOT_TOKEN = os.getenv('TRIVIA_BOT_TOKEN')
+  TG_QUIZBOT_TOKEN = os.getenv('TG_QUIZBOT_TOKEN')
   TG_LOGGING_BOT_TOKEN = os.getenv('TG_LOGGING_BOT_TOKEN')
   CHAT_ID = os.getenv('TG_CHAT_ID')
   REDIS_HOST = os.getenv('REDIS_HOST')
@@ -82,20 +84,24 @@ if __name__ == '__main__':
   questions = get_questions()
 
   logging_bot = Bot(token=TG_LOGGING_BOT_TOKEN)
+  logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
   logger.setLevel(logging.INFO)
   logger.addHandler(MyLogsHandler(logging_bot, CHAT_ID))
   logger.info('Бот tg-quiz запущен')
 
-  updater = Updater(TRIVIA_BOT_TOKEN)
+  updater = Updater(TG_QUIZBOT_TOKEN)
   dp = updater.dispatcher
+
+  send_question = partial(handle_new_question_request, questions=questions)
+  send_answer = partial(handle_give_up_attempt, questions=questions)
 
   conv_handler = ConversationHandler(
       entry_points=[CommandHandler('start', start)],
 
       states={
-          State.QUESTION: [RegexHandler('^(Новый вопрос)$', handle_new_question_request)],
+          State.QUESTION: [RegexHandler('^(Новый вопрос)$', send_question)],
 
-          State.SOLUTION: [RegexHandler('^(Сдаться)$', handle_give_up_attempt),
+          State.SOLUTION: [RegexHandler('^(Сдаться)$', send_answer),
                            MessageHandler(Filters.text, handle_solution_attempt)]
       },
 
